@@ -1,0 +1,12 @@
+version: "3.7"
+
+services: 
+  backend:
+    build: .
+    image: go-dev
+    ports: 
+      - 8773:8000
+    container_name: go-dev
+    volumes: 
+      - ./logs:/home/works/program/logs
+    restart: always

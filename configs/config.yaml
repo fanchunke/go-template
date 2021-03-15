@@ -1,0 +1,35 @@
+# config
+
+http-client-timeout: 120s
+http-server-timeout: 30s
+http-server-shutdown-timeout: 5s
+data-path: ""
+config-path: ""
+port: 8000
+port-metrics: 9899
+hostname: ""
+jwt-secret: ""
+
+redis:
+  MaxIdle: 1000
+  IdleTimeout: 30s
+  ConnectTimeout: 30s
+  ReadTimeout: 5s
+  WriteTimeout: 5s
+  Host: 127.0.0.1
+  Port: 6379
+  Password: "123456"
+  DB: 0
+
+logger:
+  logLevel: info
+
+database:
+  user: root
+  password: "123456"
+  host: 127.0.0.1
+  port: 3306
+  dbname: test
+  timeout: 30s
+  read-timeout: 5s
+  write-timeout: 5s
