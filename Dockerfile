@@ -30,7 +30,7 @@ WORKDIR /dist
 RUN cp /build/main .
 
 # Build a small image
-FROM alpine
+FROM alpine:latest
 
 RUN mkdir -p /home/works/program/logs
 
