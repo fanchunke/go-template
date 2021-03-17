@@ -28,5 +28,14 @@ func NewUserService(repo repository.UserRepo, cache cache.UserCache, logger *zap
 func (s *userService) Get(ctx context.Context, userID string) (*model.User, error) {
 	logger := middleware.InjectedLogger(ctx, s.logger)
 	logger.Info("start userService.Get")
-	return s.repo.Get(userID)
+	// return s.repo.Get(userID)
+	userCache, err := s.cache.Get(userID)
+	if err != nil {
+		return nil, err
+	}
+	user := &model.User{
+		ID:   userCache.ID,
+		Name: userCache.Name,
+	}
+	return user, nil
 }

@@ -27,6 +27,7 @@ func RequestID() gin.HandlerFunc {
 		ctx := WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Header(requestIDHeader, requestID)
+		c.Next()
 	}
 }
 

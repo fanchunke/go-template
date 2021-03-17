@@ -78,8 +78,6 @@ func main() {
 	// configure logging
 	logger, _ := initZap(viper.GetString("level"))
 	defer logger.Sync()
-	stdLog := zap.RedirectStdLog(logger)
-	defer stdLog()
 
 	// validate port
 	if _, err := strconv.Atoi(viper.GetString("port")); err != nil {
@@ -159,10 +157,16 @@ func initZap(logLevel string) (*zap.Logger, error) {
 			Initial:    100,
 			Thereafter: 100,
 		},
-		Encoding:         "json",
-		EncoderConfig:    zapEncoderConfig,
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
+		Encoding:      "json",
+		EncoderConfig: zapEncoderConfig,
+		OutputPaths: []string{
+			"stderr",
+			"./logs/go-dev.log",
+		},
+		ErrorOutputPaths: []string{
+			"stderr",
+			"./logs/go-dev.error.log",
+		},
 	}
 
 	return zapConfig.Build()
