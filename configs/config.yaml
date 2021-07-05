@@ -1,14 +1,9 @@
 # config
-
-http-client-timeout: 120s
-http-server-timeout: 30s
-http-server-shutdown-timeout: 5s
-data-path: ""
-config-path: ""
-port: 8000
-port-metrics: 9899
-hostname: ""
-jwt-secret: ""
+http:
+  port: 8000
+  port-metrics: 9898
+  http-server-timeout: 30s
+  http-server-shutdown-timeout: 5s
 
 redis:
   MaxIdle: 1000
@@ -22,7 +17,13 @@ redis:
   DB: 0
 
 logger:
-  logLevel: info
+  level: debug
+  output-paths:
+    - "stderr"
+    - "logs/go-dev.log"
+  error-output-paths:
+    - "stderr"
+    - "logs/go-dev.error.log"
 
 database:
   user: root

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
-	"go.uber.org/zap"
 )
 
 var users = []map[string]interface{}{
@@ -67,9 +66,8 @@ func (c *mockUserCache) Set(userID string, user *model.UserCache) error {
 
 func Test_userService_Get(t *testing.T) {
 	type fields struct {
-		repo   repository.UserRepo
-		cache  cache.UserCache
-		logger *zap.Logger
+		repo  repository.UserRepo
+		cache cache.UserCache
 	}
 	type args struct {
 		userID string
@@ -81,7 +79,7 @@ func Test_userService_Get(t *testing.T) {
 		want    *model.User
 		wantErr bool
 	}
-	f := fields{repo: &mockUserRepo{}, cache: &mockUserCache{}, logger: zap.NewNop()}
+	f := fields{repo: &mockUserRepo{}, cache: &mockUserCache{}}
 	tests := []test{
 		{
 			name:    "Get 1",
@@ -107,7 +105,7 @@ func Test_userService_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewUserService(tt.fields.repo, tt.fields.cache, tt.fields.logger)
+			s := NewUserService(tt.fields.repo, tt.fields.cache)
 			got, err := s.Get(context.TODO(), tt.args.userID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("userService.Get() error = %v, wantErr %v", err, tt.wantErr)

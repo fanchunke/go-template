@@ -2,31 +2,27 @@ package service
 
 import (
 	"context"
+	"go-template/internal/log"
 	"go-template/internal/server/cache"
-	"go-template/internal/server/middleware"
 	"go-template/internal/server/model"
 	"go-template/internal/server/repository"
-
-	"go.uber.org/zap"
 )
 
 type userService struct {
-	repo   repository.UserRepo
-	cache  cache.UserCache
-	logger *zap.Logger
+	repo  repository.UserRepo
+	cache cache.UserCache
 }
 
 // NewUserService returns an UserService instance.
-func NewUserService(repo repository.UserRepo, cache cache.UserCache, logger *zap.Logger) UserService {
+func NewUserService(repo repository.UserRepo, cache cache.UserCache) UserService {
 	return &userService{
-		repo:   repo,
-		cache:  cache,
-		logger: logger,
+		repo:  repo,
+		cache: cache,
 	}
 }
 
 func (s *userService) Get(ctx context.Context, userID string) (*model.User, error) {
-	logger := middleware.InjectedLogger(ctx, s.logger)
+	logger := log.Ctx(ctx)
 	logger.Info("start userService.Get")
 	// return s.repo.Get(userID)
 	userCache, err := s.cache.Get(userID)
