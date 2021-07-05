@@ -1,20 +1,58 @@
 package config
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"time"
 
-// Config is app configuration
+	"github.com/spf13/viper"
+)
+
+// Config represents program configuration
 type Config struct {
-	HTTPClientTimeout         time.Duration `mapstructure:"http-client-timeout"`
-	HTTPServerTimeout         time.Duration `mapstructure:"http-server-timeout"`
-	HTTPServerShutdownTimeout time.Duration `mapstructure:"http-server-shutdown-timeout"`
-	DataPath                  string        `mapstructure:"data-path"`
+	HTTP     HTTP     `mapstructure:"http"`
+	Redis    Redis    `mapstructure:"redis"`
+	Logger   Logger   `mapstructure:"logger"`
+	Database Database `mapstructure:"database"`
+}
+
+// New returns Config object that reads configurations from a file.
+func New(configFile string) *Config {
+
+	// Set default configurations
+	setDefaults()
+
+	// Set configuration file
+	viper.SetConfigFile(configFile)
+
+	// Automatically refresh environment variables
+	viper.AutomaticEnv()
+
+	// Read configuration
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("failed to read configuration: ", err.Error())
+		os.Exit(1)
+	}
+
+	var config *Config
+	if err := viper.Unmarshal(&config); err != nil {
+		fmt.Println("HTTP server config unmarshal failed", err.Error())
+	}
+
+	return config
+}
+
+func setDefaults() {
+	// Set default database configuration
+
+}
+
+// HTTP is http configuration
+type HTTP struct {
 	Port                      string        `mapstructure:"port"`
 	PortMetrics               int           `mapstructure:"port-metrics"`
-	HostName                  string        `mapstructure:"hostname"`
-	JWTSecret                 string        `mapstructure:"jwt-secret"`
-	Redis                     *Redis        `mapstructure:"redis"`
-	Logger                    *Logger       `mapstructure:"logger"`
-	Database                  *Database     `mapstructure:"database"`
+	HTTPServerTimeout         time.Duration `mapstructure:"http-server-timeout"`
+	HTTPServerShutdownTimeout time.Duration `mapstructure:"http-server-shutdown-timeout"`
 }
 
 // Redis is redis configuration
@@ -33,7 +71,9 @@ type Redis struct {
 
 // Logger is redis configuration
 type Logger struct {
-	Level string `mapstructure:"level"`
+	Level            string   `mapstructure:"level"`
+	OutputPaths      []string `mapstructure:"output-paths"`
+	ErrorOutputPaths []string `mapstructure:"error-output-paths"`
 }
 
 // Database is mysql configuration

@@ -12,26 +12,20 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
-	"go-template/internal/server/config"
+	"go-template/internal/config"
 	"go-template/internal/server/router"
-	"go-template/internal/version"
 )
-
-// Config is app configuration
-type Config config.Config
 
 // Server is a HTTP server
 type Server struct {
-	logger *zap.Logger
-	config *Config
+	config *config.Config
 	router http.Handler
 }
 
 // NewServer return a HTTP server
-func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
+func NewServer(config *config.Config) (*Server, error) {
 	srv := &Server{
 		config: config,
-		logger: logger,
 	}
 	return srv, nil
 }
@@ -56,7 +50,7 @@ func (s *Server) Run(stopCh <-chan struct{}) {
 
 	// wait for SIGTERM or SIGINT
 	<-stopCh
-	ctx, cancel := context.WithTimeout(context.Background(), s.config.HTTPServerShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.HTTP.HTTPServerShutdownTimeout)
 	defer cancel()
 
 	// close cache pool
@@ -64,39 +58,39 @@ func (s *Server) Run(stopCh <-chan struct{}) {
 		_ = pool.Close()
 	}
 
-	s.logger.Info("Shutting down HTTP/HTTPS server", zap.Duration("timeout", s.config.HTTPServerShutdownTimeout))
+	zap.L().Info("Shutting down HTTP/HTTPS server", zap.Duration("timeout", s.config.HTTP.HTTPServerShutdownTimeout))
 
 	// determine if the http server was started
 	if srv != nil {
 		if err := srv.Shutdown(ctx); err != nil {
-			s.logger.Warn("HTTP server graceful shutdown failed", zap.Error(err))
+			zap.L().Warn("HTTP server graceful shutdown failed", zap.Error(err))
 		}
 	}
 }
 
 func (s *Server) registerHandlers(pool *redis.Pool, db *sqlx.DB) {
-	s.router = router.New(s.logger, pool, db)
+	s.router = router.New(pool, db)
 }
 
 func (s *Server) startServer() *http.Server {
 	// determine if the port is specified
 	c := s.config
-	if c.Port == "0" {
+	if c.HTTP.Port == "0" {
 		return nil
 	}
 
 	srv := &http.Server{
-		Addr:         ":" + c.Port,
-		WriteTimeout: c.HTTPServerTimeout,
-		ReadTimeout:  c.HTTPServerTimeout,
-		IdleTimeout:  2 * c.HTTPServerShutdownTimeout,
+		Addr:         ":" + c.HTTP.Port,
+		WriteTimeout: c.HTTP.HTTPServerTimeout,
+		ReadTimeout:  c.HTTP.HTTPServerTimeout,
+		IdleTimeout:  2 * c.HTTP.HTTPServerShutdownTimeout,
 		Handler:      s.router,
 	}
 
 	// start the server in the background
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Fatal("HTTP server crashed", zap.Error(err))
+			zap.L().Fatal("HTTP server crashed", zap.Error(err))
 		}
 	}()
 
@@ -104,7 +98,7 @@ func (s *Server) startServer() *http.Server {
 }
 
 func (s *Server) startMetricsServer() {
-	if s.config.PortMetrics > 0 {
+	if s.config.HTTP.PortMetrics > 0 {
 		mux := http.DefaultServeMux
 		mux.Handle("/metrics", promhttp.Handler())
 		mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +107,7 @@ func (s *Server) startMetricsServer() {
 		})
 
 		srv := &http.Server{
-			Addr:    fmt.Sprintf(":%v", s.config.PortMetrics),
+			Addr:    fmt.Sprintf(":%v", s.config.HTTP.PortMetrics),
 			Handler: mux,
 		}
 		srv.ListenAndServe()
@@ -122,9 +116,6 @@ func (s *Server) startMetricsServer() {
 
 func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) *redis.Pool {
 	c := s.config.Redis
-	if c == nil {
-		return nil
-	}
 
 	pool := &redis.Pool{
 		MaxIdle:     c.MaxIdle,
@@ -141,27 +132,6 @@ func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) *re
 			)
 		},
 	}
-
-	setVersion := func() {
-		conn := pool.Get()
-		defer conn.Close()
-		if _, err := conn.Do("SET", s.config.HostName, version.VERSION, "EX", 60); err != nil {
-			s.logger.Warn("cache server is offline", zap.Error(err), zap.Any("server", c))
-		}
-	}
-
-	// set version on a schedule
-	go func() {
-		setVersion()
-		for {
-			select {
-			case <-stopCh:
-				return
-			case <-ticker.C:
-				setVersion()
-			}
-		}
-	}()
 
 	return pool
 }

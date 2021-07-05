@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"go-template/internal/log"
 	"io"
 	"io/ioutil"
 	"time"
@@ -22,9 +23,9 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 }
 
 // Logger is a gin common logging middleware.
-func Logger(logger *zap.Logger) gin.HandlerFunc {
+func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		logger = InjectedLogger(c.Request.Context(), logger)
+		logger := log.Ctx(c.Request.Context())
 		start := time.Now()
 
 		var buf bytes.Buffer
