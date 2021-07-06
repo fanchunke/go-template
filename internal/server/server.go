@@ -34,12 +34,15 @@ func NewServer(config *config.Config) (*Server, error) {
 func (s *Server) Run(stopCh <-chan struct{}) {
 	go s.startMetricsServer()
 
-	// // init app context, include create redis pool, connect database, etc.
-	ticker := time.NewTicker(30 * time.Second)
-	pool := s.startCachePool(ticker, stopCh)
+	// create redis pool, connect database, etc.
+	pool, err := s.startCachePool()
+	if err != nil {
+		zap.L().Fatal(fmt.Sprintf("connect to redis failed: %v\n", err.Error()))
+	}
+
 	db, err := s.connectDatabase()
 	if err != nil {
-		panic(err)
+		zap.L().Fatal(fmt.Sprintf("connect to database failed: %v\n", err.Error()))
 	}
 
 	// register http handlers
@@ -114,7 +117,7 @@ func (s *Server) startMetricsServer() {
 	}
 }
 
-func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) *redis.Pool {
+func (s *Server) startCachePool() (*redis.Pool, error) {
 	c := s.config.Redis
 
 	pool := &redis.Pool{
@@ -133,7 +136,15 @@ func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) *re
 		},
 	}
 
-	return pool
+	// test connection pool
+	conn := pool.Get()
+	defer conn.Close()
+
+	if _, err := conn.Do("PING"); err != nil {
+		return pool, err
+	}
+
+	return pool, nil
 }
 
 func (s *Server) connectDatabase() (*sqlx.DB, error) {
