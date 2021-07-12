@@ -1,6 +1,7 @@
 package api
 
 import (
+	"go-template/internal/errno"
 	"go-template/internal/log"
 	"go-template/internal/server/cache"
 	"go-template/internal/server/repository"
@@ -22,7 +23,11 @@ func (u *UserAPI) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 	logger := log.Ctx(ctx)
 	logger.Info("start getting users")
-	u.service.Get(ctx, "1")
+	if _, err := u.service.Get(ctx, "1"); err != nil {
+		c.JSON(http.StatusInternalServerError, errno.ErrServer.WithError(err))
+		return
+	}
+
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"code": 0,
 		"msg":  "ok",
