@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"go-template/internal/log"
 	"io"
 	"io/ioutil"
@@ -39,11 +40,10 @@ func Logger() gin.HandlerFunc {
 			zap.String("method", c.Request.Method),
 			zap.String("remote", c.Request.RemoteAddr),
 			zap.String("user-agent", c.Request.UserAgent()),
-			zap.String("request", string(body)),
 		}
 
 		logger.Debug(
-			"request started",
+			fmt.Sprintf("request: %s", string(body)),
 			reqFields...,
 		)
 
@@ -58,11 +58,10 @@ func Logger() gin.HandlerFunc {
 		respFields := []zapcore.Field{
 			zap.Int("status", ww.Status()),
 			zap.Duration("duration", time.Since(start)),
-			zap.String("response", ww.body.String()),
 		}
 
 		logger.Debug(
-			"response",
+			fmt.Sprintf("response: %s", ww.body.String()),
 			respFields...,
 		)
 	}
